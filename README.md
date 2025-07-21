@@ -1,75 +1,38 @@
 # IntelliTrack
 
-A minimal application demonstrating object tracking with PTZ control.
+A minimal set of tools for experimenting with NDI video sources and PTZ camera tracking.
 
 ## Requirements
 
-Install dependencies:
-=======
-This repository contains small experimental tools. The `src/ndi_viewer.py` script provides a PyQt-based viewer for NDI streams.
+* **Python 3.10** – the NDI Python bindings currently fail to build on newer Python releases.
+* [PySide6](https://pypi.org/project/PySide6/) and [OpenCV](https://pypi.org/project/opencv-python/).
+* [`ndi-python`](https://pypi.org/project/ndi-python/) from the official [NDI SDK](https://www.ndi.tv/sdk/).
 
-## Usage
-
-First install the required dependencies, typically via pip:
+Install everything with:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Usage
-
-Run the video tracker:
+On **Windows** you may need to install the NDI SDK first and then install the wheel:
 
 ```bash
-python -m src.video_tracker
+pip install ndi-python
 ```
 
-Select a region of interest to start tracking. Use the toggle button to enable or disable PTZ tracking.
-=======
-Then run the viewer:
+## Running
 
-```bash
-python src/ndi_viewer.py
+Make sure the desired NDI sources are visible on your network. No IP configuration is required.
+
+Set `PYTHONPATH` to the project root and launch the viewer:
+
+```powershell
+$env:PYTHONPATH = ""
+python -m gui.main_window
 ```
 
-A window will appear with a dropdown listing discovered NDI sources. Selecting a source will display the live video in real time.
+The application lists all discovered NDI sources and shows a live preview when one is selected.
 
-For a PySide6-based viewer run:
+## Additional tools
 
-```bash
-python src/ndi_viewer_pyside6.py
-```
-
-This version uses PySide6 and OpenCV to preview the selected NDI source.
-
-=======
-IntelliTrack aims to build a cross-platform PTZ camera tracking application that runs on both Windows and macOS. The goal is to provide a simple tool for discovering cameras, previewing video in real time and controlling PTZ functions while tracking objects automatically.
-
-## Key Features
-
-- **NDI discovery** for automatically finding network cameras.
-- **Real-time video** preview using OpenCV.
-- **PTZ control** to manage pan, tilt and zoom operations.
-- **Object tracking** to keep the camera focused on moving subjects.
-
-## Setup
-
-1. Install Python 3.8 or later.
-2. Install the required dependencies:
-   ```bash
-   pip install PyQt5 opencv-python
-   ```
-3. Additional modules for NDI and camera control will be added as the project develops.
-
-### Frameworks
-
-- [PyQt5](https://pypi.org/project/PyQt5/) provides the cross-platform GUI.
-- [OpenCV](https://pypi.org/project/opencv-python/) handles video capture and processing.
-
-### Supported Operating Systems
-
-- Windows
-- macOS
-
-More details will be documented as IntelliTrack progresses.
-
+The repository also contains simple viewers using PyQt5 (`src/ndi_viewer.py`) and PySide6 (`src/ndi_viewer_pyside6.py`) as well as an experimental object tracker.
