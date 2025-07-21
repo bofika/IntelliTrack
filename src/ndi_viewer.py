@@ -88,7 +88,7 @@ class NDIViewer(QtWidgets.QWidget):
         frame_type, video_frame, _audio_frame, _meta = ndi.recv_capture_v2(
             self.receiver, 1000
         )
-        if frame_type == ndi.FrameType.VIDEO:
+        if frame_type == ndi.FRAME_TYPE_VIDEO:
             height = video_frame.yres
             width = video_frame.xres
             data = np.frombuffer(video_frame.data, dtype=np.uint8)

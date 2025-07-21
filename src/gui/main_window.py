@@ -118,7 +118,7 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         frame_type, video_frame, _, _ = ndi.recv_capture_v2(self.receiver, 1000)
-        if frame_type == ndi.FrameType.VIDEO:
+        if frame_type == ndi.FRAME_TYPE_VIDEO:
             h = video_frame.yres
             w = video_frame.xres
             data = np.frombuffer(video_frame.data, dtype=np.uint8)
