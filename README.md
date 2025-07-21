@@ -1,5 +1,22 @@
 # IntelliTrack
 
+This repository contains a minimal Python package used for demonstration
+purposes.
+
+## Running tests
+
+1. Install the development dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. Run the test suite using `pytest`:
+   ```bash
+   pytest
+   ```
+
+The configuration for `pytest` is stored in `pyproject.toml` and tests live
+under the `tests/` directory.
+=======
 A minimal application demonstrating object tracking with PTZ control.
 
 ## Requirements
@@ -72,4 +89,3 @@ IntelliTrack aims to build a cross-platform PTZ camera tracking application that
 - macOS
 
 More details will be documented as IntelliTrack progresses.
-
