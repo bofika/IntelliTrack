@@ -1,5 +1,24 @@
 # IntelliTrack
 
+This repository contains small experimental tools. The `src/ndi_viewer.py` script provides a PyQt-based viewer for NDI streams.
+
+## Usage
+
+First install the required dependencies, typically via pip:
+
+```bash
+pip install -r requirements.txt
+```
+
+Then run the viewer:
+
+```bash
+python src/ndi_viewer.py
+```
+
+A window will appear with a dropdown listing discovered NDI sources. Selecting a source will display the live video in real time.
+
+=======
 IntelliTrack aims to build a cross-platform PTZ camera tracking application that runs on both Windows and macOS. The goal is to provide a simple tool for discovering cameras, previewing video in real time and controlling PTZ functions while tracking objects automatically.
 
 ## Key Features
@@ -29,3 +48,4 @@ IntelliTrack aims to build a cross-platform PTZ camera tracking application that
 - macOS
 
 More details will be documented as IntelliTrack progresses.
+
