@@ -66,7 +66,7 @@ class NDIViewer(QtWidgets.QWidget):
         self.source_selector.blockSignals(True)
         self.source_selector.clear()
         for src in self.sources:
-            self.source_selector.addItem(src.p_ndi_name.decode("utf-8"))
+            self.source_selector.addItem(src.ndi_name)
         self.source_selector.blockSignals(False)
 
         if self.sources:
