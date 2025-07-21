@@ -1,4 +1,6 @@
 import sys
+import logging
+
 from PyQt5 import QtWidgets, QtGui, QtCore
 import numpy as np
 import cv2
@@ -84,8 +86,8 @@ class NDIViewer(QtWidgets.QWidget):
     def _update_frame(self):
         if self.receiver is None:
             return
-        # Capture a frame from NDI. We use timeout 0 to return immediately.
-        frame_type, video_frame, _audio_frame, _meta = ndi.recv_capture_v2(
+        # Capture a frame from NDI. Timeout of 1000 ms waits up to 1 second.
+        frame_type, video_frame, audio_frame, metadata_frame = ndi.recv_capture_v2(
             self.receiver, 1000
         )
         if frame_type == ndi.FRAME_TYPE_VIDEO:
@@ -101,6 +103,14 @@ class NDIViewer(QtWidgets.QWidget):
             pix = QtGui.QPixmap.fromImage(image)
             self.image_label.setPixmap(pix)
             ndi.recv_free_video_v2(self.receiver, video_frame)
+        elif frame_type == ndi.FRAME_TYPE_AUDIO:
+            ndi.recv_free_audio_v2(self.receiver, audio_frame)
+        elif frame_type == ndi.FRAME_TYPE_METADATA:
+            ndi.recv_free_metadata(self.receiver, metadata_frame)
+        elif frame_type == ndi.FRAME_TYPE_NONE:
+            pass
+        else:
+            logging.warning("Unknown NDI frame type: %s", frame_type)
 
 
 def main():

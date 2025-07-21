@@ -1,4 +1,6 @@
 import sys
+import logging
+
 import numpy as np
 import cv2
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -117,7 +119,9 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.receiver is None or ndi is None:
             return
 
-        frame_type, video_frame, _, _ = ndi.recv_capture_v2(self.receiver, 1000)
+        frame_type, video_frame, audio_frame, metadata_frame = ndi.recv_capture_v2(
+            self.receiver, 1000
+        )
         if frame_type == ndi.FRAME_TYPE_VIDEO:
             h = video_frame.yres
             w = video_frame.xres
@@ -127,9 +131,14 @@ class MainWindow(QtWidgets.QMainWindow):
             qimg = QtGui.QImage(frame.data, w, h, QtGui.QImage.Format_RGB888)
             self.video_label.setPixmap(QtGui.QPixmap.fromImage(qimg))
             ndi.recv_free_video_v2(self.receiver, video_frame)
-        elif frame_type == ndi.FrameType.ERROR:
-            self.video_label.setText("Error receiving video")
-            self._disconnect_receiver()
+        elif frame_type == ndi.FRAME_TYPE_AUDIO:
+            ndi.recv_free_audio_v2(self.receiver, audio_frame)
+        elif frame_type == ndi.FRAME_TYPE_METADATA:
+            ndi.recv_free_metadata(self.receiver, metadata_frame)
+        elif frame_type == ndi.FRAME_TYPE_NONE:
+            pass
+        else:
+            logging.warning("Unknown NDI frame type: %s", frame_type)
 
 
 def main():
