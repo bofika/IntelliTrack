@@ -82,7 +82,7 @@ class NDIViewer(QtWidgets.QMainWindow):
         self.combo.clear()
         for src in self.sources:
             name = src.ndi_name
-            ip = src.p_url_address.decode("utf-8") if src.p_url_address else ""
+            ip = src.url_address if src.url_address else ""
             display = f"{name} ({ip})" if ip else name
             self.combo.addItem(display)
         self.combo.blockSignals(False)
