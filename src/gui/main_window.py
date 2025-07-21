@@ -1,5 +1,4 @@
 import sys
-import logging
 
 import numpy as np
 import cv2
@@ -126,8 +125,10 @@ class MainWindow(QtWidgets.QMainWindow):
             )
             # subsequent iterations should return immediately
             timeout = 0
+            print("Received frame type:", frame_type)
 
             if frame_type == ndi.FRAME_TYPE_VIDEO:
+                print("Processing video frame", video_frame.xres, video_frame.yres)
                 h = video_frame.yres
                 w = video_frame.xres
                 data = np.frombuffer(video_frame.data, dtype=np.uint8)
@@ -144,12 +145,13 @@ class MainWindow(QtWidgets.QMainWindow):
                 ndi.recv_free_metadata(self.receiver, metadata_frame)
                 continue
             elif frame_type == ndi.FRANE_TYPE_STATUS_CHANGE:
-                # Source status changed, ignore and wait for next frame
+                print("Status change event")
                 continue
             elif frame_type == ndi.FRAME_TYPE_NONE:
+                print("No frame this loop")
                 break
             else:
-                logging.warning("Unknown NDI frame type: %s", frame_type)
+                print("Unexpected frame type", frame_type)
                 break
 
 
