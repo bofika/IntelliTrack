@@ -1,1 +1,13 @@
 pytest>=7.0
+=======
+opencv-python
+Pillow
+=======
+PyQt5
+numpy
+opencv-python-headless
+=======
+PyQt5>=5.15
+PySide6>=6.0
+opencv-python>=4.5
+ndi-python
