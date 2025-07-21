@@ -1,5 +1,11 @@
 # IntelliTrack
 
+A minimal application demonstrating object tracking with PTZ control.
+
+## Requirements
+
+Install dependencies:
+=======
 This repository contains small experimental tools. The `src/ndi_viewer.py` script provides a PyQt-based viewer for NDI streams.
 
 ## Usage
@@ -10,6 +16,16 @@ First install the required dependencies, typically via pip:
 pip install -r requirements.txt
 ```
 
+## Usage
+
+Run the video tracker:
+
+```bash
+python -m src.video_tracker
+```
+
+Select a region of interest to start tracking. Use the toggle button to enable or disable PTZ tracking.
+=======
 Then run the viewer:
 
 ```bash
