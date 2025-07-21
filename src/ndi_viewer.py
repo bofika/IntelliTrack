@@ -86,9 +86,9 @@ class NDIViewer(QtWidgets.QWidget):
             return
         # Capture a frame from NDI. We use timeout 0 to return immediately.
         frame_type, video_frame, _audio_frame, _meta = ndi.recv_capture_v2(
-            self.receiver, 0
+            self.receiver, 1000
         )
-        if frame_type == ndi.FRAME_TYPE_VIDEO:
+        if frame_type == ndi.FrameType.VIDEO:
             height = video_frame.yres
             width = video_frame.xres
             data = np.frombuffer(video_frame.data, dtype=np.uint8)
