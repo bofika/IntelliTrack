@@ -1,5 +1,5 @@
 import cv2
-from tkinter import Tk, Label, Button
+from tkinter import Tk, Label, Button, Checkbutton, IntVar
 from PIL import Image, ImageTk
 from .ptz_controller import PTZController
 
@@ -17,8 +17,14 @@ class VideoTracker:
         self.panel = Label(self.root)
         self.panel.pack()
         Button(self.root, text="Select ROI", command=self.select_roi).pack(side="left")
-        self.toggle_btn = Button(
-            self.root, text="Tracking OFF", command=self.toggle_tracking
+        self.tracking_var = IntVar(value=0)
+        self.toggle_btn = Checkbutton(
+            self.root,
+            text="Tracking OFF",
+            variable=self.tracking_var,
+            command=self.toggle_tracking,
+            offvalue=0,
+            onvalue=1,
         )
         self.toggle_btn.pack(side="left")
 
@@ -32,11 +38,14 @@ class VideoTracker:
             self.tracker = cv2.TrackerCSRT_create()
             self.tracker.init(frame, bbox)
             self.tracking_enabled = True
+            self.tracking_var.set(1)
             self.toggle_btn.config(text="Tracking ON")
 
     def toggle_tracking(self):
-        self.tracking_enabled = not self.tracking_enabled
-        self.toggle_btn.config(text="Tracking ON" if self.tracking_enabled else "Tracking OFF")
+        self.tracking_enabled = bool(self.tracking_var.get())
+        self.toggle_btn.config(
+            text="Tracking ON" if self.tracking_enabled else "Tracking OFF"
+        )
 
     def update(self):
         ret, frame = self.cap.read()
