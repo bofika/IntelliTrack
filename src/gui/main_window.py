@@ -143,7 +143,7 @@ class MainWindow(QtWidgets.QMainWindow):
             elif frame_type == ndi.FRAME_TYPE_METADATA:
                 ndi.recv_free_metadata(self.receiver, metadata_frame)
                 continue
-            elif frame_type == ndi.FRAME_TYPE_STATUS_CHANGE:
+            elif frame_type == ndi.FRANE_TYPE_STATUS_CHANGE:
                 # Source status changed, ignore and wait for next frame
                 continue
             elif frame_type == ndi.FRAME_TYPE_NONE:
