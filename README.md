@@ -34,6 +34,14 @@ python src/ndi_viewer.py
 
 A window will appear with a dropdown listing discovered NDI sources. Selecting a source will display the live video in real time.
 
+For a PySide6-based viewer run:
+
+```bash
+python src/ndi_viewer_pyside6.py
+```
+
+This version uses PySide6 and OpenCV to preview the selected NDI source.
+
 =======
 IntelliTrack aims to build a cross-platform PTZ camera tracking application that runs on both Windows and macOS. The goal is to provide a simple tool for discovering cameras, previewing video in real time and controlling PTZ functions while tracking objects automatically.
 
