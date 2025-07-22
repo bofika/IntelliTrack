@@ -120,15 +120,35 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # ------------------------------------------------------------------
     def _display_qimage(self, qimg: QtGui.QImage) -> None:
-        """Display the given QImage on the QLabel.
+        """Safely display ``qimg`` on the QLabel.
 
-        Keeping a reference prevents premature garbage collection. If further
-        instability arises this method can be invoked via QTimer.singleShot to
-        ensure execution on the main thread.
+        A reference to the image is kept to prevent premature garbage
+        collection. If this method is called from a thread other than the GUI
+        thread it will invoke the update via ``QMetaObject`` using a queued
+        connection to avoid crashes.
         """
 
         self._last_qimage = qimg
-        self.video_label.setPixmap(QtGui.QPixmap.fromImage(qimg))
+
+        def _set_pixmap() -> None:
+            try:
+                logger.debug("Converting QImage to QPixmap")
+                pix = QtGui.QPixmap.fromImage(qimg)
+                self.video_label.setPixmap(pix)
+                logger.debug("Pixmap set on QLabel")
+            except Exception:
+                logger.exception("Failed to update QLabel pixmap")
+
+        if QtCore.QThread.currentThread() != self.thread():
+            logger.warning("Display update from non-GUI thread; using invokeMethod")
+            QtCore.QMetaObject.invokeMethod(
+                self.video_label,
+                "setPixmap",
+                QtCore.Qt.QueuedConnection,
+                QtCore.Q_ARG(QtGui.QPixmap, QtGui.QPixmap.fromImage(qimg)),
+            )
+        else:
+            _set_pixmap()
 
     def _update_frame(self):
         try:
@@ -147,32 +167,71 @@ class MainWindow(QtWidgets.QMainWindow):
                     logger.info("Received frame type: %s", frame_type)
 
                     if frame_type == ndi.FRAME_TYPE_VIDEO:
+                        width = video_frame.xres
+                        height = video_frame.yres
                         logger.info(
-                            "Processing video frame %sx%s",
-                            video_frame.xres,
-                            video_frame.yres,
+                            "Processing video frame %sx%s", width, height
                         )
-                        data = np.frombuffer(video_frame.data, dtype=np.uint8)
-                        logger.info("Reshaping video data")
-                        data = data.reshape(
-                            video_frame.yres,
-                            video_frame.line_stride_in_bytes // 4,
-                            4,
+                        if width <= 0 or height <= 0:
+                            logger.error(
+                                "Invalid frame dimensions: %sx%s", width, height
+                            )
+                            ndi.recv_free_video_v2(self.receiver, video_frame)
+                            break
+
+                        expected_size = (
+                            video_frame.line_stride_in_bytes * video_frame.yres
                         )
-                        frame = cv2.cvtColor(data, cv2.COLOR_BGRA2RGB)
-                        logger.info("Creating QImage")
-                        qimg = QtGui.QImage(
-                            frame.data,
-                            video_frame.xres,
-                            video_frame.yres,
-                            QtGui.QImage.Format_RGB888,
+                        data = np.frombuffer(
+                            video_frame.data, dtype=np.uint8, count=expected_size
                         )
+                        logger.debug(
+                            "Raw data len=%s stride=%s", len(data), video_frame.line_stride_in_bytes
+                        )
+                        try:
+                            data = data.reshape(
+                                height, video_frame.line_stride_in_bytes // 4, 4
+                            )
+                        except Exception:
+                            logger.exception(
+                                "Failed to reshape video data: expected %s bytes", expected_size
+                            )
+                            ndi.recv_free_video_v2(self.receiver, video_frame)
+                            break
+
+                        logger.debug(
+                            "Frame numpy shape=%s dtype=%s first_bytes=%s",
+                            data.shape,
+                            data.dtype,
+                            data.flat[:8].tolist(),
+                        )
+                        try:
+                            frame = cv2.cvtColor(data, cv2.COLOR_BGRA2RGB)
+                        except Exception:
+                            logger.exception("cv2.cvtColor failed")
+                            ndi.recv_free_video_v2(self.receiver, video_frame)
+                            break
+
+                        try:
+                            qimg = QtGui.QImage(
+                                frame.data,
+                                width,
+                                height,
+                                QtGui.QImage.Format_RGB888,
+                            )
+                        except Exception:
+                            logger.exception("Failed to create QImage")
+                            ndi.recv_free_video_v2(self.receiver, video_frame)
+                            break
+
                         try:
                             self._display_qimage(qimg)
                             logger.info("Display updated")
                         except Exception:
                             logger.exception("Error during QLabel update")
-                            raise
+                            ndi.recv_free_video_v2(self.receiver, video_frame)
+                            break
+
                         self.repaint()
                         logger.info("Done displaying frame")
                         ndi.recv_free_video_v2(self.receiver, video_frame)
