@@ -1,4 +1,5 @@
 import sys
+import logging
 
 import numpy as np
 import cv2
@@ -8,6 +9,8 @@ try:
     import NDIlib as ndi
 except ImportError:  # pragma: no cover - NDI may not be installed
     ndi = None
+
+logger = logging.getLogger(__name__)
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -42,6 +45,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.finder = None
         self.receiver = None
         self.sources = []
+        self._last_qimage = None  # prevent QImage from being garbage collected
 
         if ndi is not None and ndi.initialize():
             self._refresh_sources()
@@ -114,6 +118,18 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         ndi.recv_connect(self.receiver, source)
 
+    # ------------------------------------------------------------------
+    def _display_qimage(self, qimg: QtGui.QImage) -> None:
+        """Display the given QImage on the QLabel.
+
+        Keeping a reference prevents premature garbage collection. If further
+        instability arises this method can be invoked via QTimer.singleShot to
+        ensure execution on the main thread.
+        """
+
+        self._last_qimage = qimg
+        self.video_label.setPixmap(QtGui.QPixmap.fromImage(qimg))
+
     def _update_frame(self):
         try:
             if self.receiver is None or ndi is None:
@@ -122,54 +138,70 @@ class MainWindow(QtWidgets.QMainWindow):
             timeout = 1000
             while True:
                 try:
-                    frame_type, video_frame, _audio_frame, metadata_frame = ndi.recv_capture_v2(
+                    frame_type, video_frame, audio_frame, metadata_frame = ndi.recv_capture_v2(
                         self.receiver, timeout
                     )
-                # subsequent iterations should return immediately
+                    # subsequent iterations should return immediately
                     timeout = 0
-                    print("Received frame type:", frame_type)
+
+                    logger.info("Received frame type: %s", frame_type)
 
                     if frame_type == ndi.FRAME_TYPE_VIDEO:
-                        print("Processing video frame", video_frame.xres, video_frame.yres)
-                        print("Converting to numpy array...")
+                        logger.info(
+                            "Processing video frame %sx%s",
+                            video_frame.xres,
+                            video_frame.yres,
+                        )
                         data = np.frombuffer(video_frame.data, dtype=np.uint8)
-                        print("Reshaping...")
-                        data = data.reshape(video_frame.yres, video_frame.line_stride_in_bytes // 4, 4)
+                        logger.info("Reshaping video data")
+                        data = data.reshape(
+                            video_frame.yres,
+                            video_frame.line_stride_in_bytes // 4,
+                            4,
+                        )
                         frame = cv2.cvtColor(data, cv2.COLOR_BGRA2RGB)
-                        print("Creating QImage...")
-                        qimg = QtGui.QImage(frame.data, video_frame.xres, video_frame.yres, QtGui.QImage.Format_RGB888)
-                        print("Displaying...")
+                        logger.info("Creating QImage")
+                        qimg = QtGui.QImage(
+                            frame.data,
+                            video_frame.xres,
+                            video_frame.yres,
+                            QtGui.QImage.Format_RGB888,
+                        )
                         try:
-                            self.video_label.setPixmap(QtGui.QPixmap.fromImage(qimg))
+                            self._display_qimage(qimg)
+                            logger.info("Display updated")
                         except Exception:
-                            print("Error during QLabel update")
+                            logger.exception("Error during QLabel update")
                             raise
                         self.repaint()
-                        print("Done displaying frame")
+                        logger.info("Done displaying frame")
                         ndi.recv_free_video_v2(self.receiver, video_frame)
                         break
+                    elif frame_type == ndi.FRAME_TYPE_AUDIO:
+                        logger.info("Received audio frame")
+                        ndi.recv_free_audio_v2(self.receiver, audio_frame)
+                        continue
                     elif frame_type == ndi.FRAME_TYPE_METADATA:
                         ndi.recv_free_metadata(self.receiver, metadata_frame)
                         continue
-                    elif frame_type == ndi.FRANE_TYPE_STATUS_CHANGE:
-                        print("Status change event")
+                    elif hasattr(ndi, "FRAME_TYPE_STATUS_CHANGE") and frame_type == ndi.FRAME_TYPE_STATUS_CHANGE:
+                        logger.info("Status change event")
                         continue
                     elif frame_type == ndi.FRAME_TYPE_NONE:
-                        print("No frame this loop")
+                        logger.info("No frame available this loop")
                         break
                     else:
-                        print("Unexpected frame type", frame_type)
+                        logger.warning("Unexpected frame type: %s", frame_type)
                         break
-                except Exception as e:
-                    print(f"Exception during video frame handling: {e}")
+                except Exception:
+                    logger.exception("Exception during video frame handling")
                     break
         except Exception as e:
-            print(f"[FATAL ERROR] Exception in _update_frame: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.exception("[FATAL ERROR] Exception in _update_frame: %s", e)
 
 
 def main():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
     app = QtWidgets.QApplication(sys.argv)
     window = MainWindow()
     window.resize(800, 600)
