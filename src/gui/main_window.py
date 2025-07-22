@@ -115,48 +115,58 @@ class MainWindow(QtWidgets.QMainWindow):
         ndi.recv_connect(self.receiver, source)
 
     def _update_frame(self):
-        if self.receiver is None or ndi is None:
-            return
+        try:
+            if self.receiver is None or ndi is None:
+                return
 
-        timeout = 1000
-        while True:
-            try:
-                frame_type, video_frame, _audio_frame, metadata_frame = ndi.recv_capture_v2(
-                    self.receiver, timeout
-                )
+            timeout = 1000
+            while True:
+                try:
+                    frame_type, video_frame, _audio_frame, metadata_frame = ndi.recv_capture_v2(
+                        self.receiver, timeout
+                    )
                 # subsequent iterations should return immediately
-                timeout = 0
-                print("Received frame type:", frame_type)
+                    timeout = 0
+                    print("Received frame type:", frame_type)
 
-                if frame_type == ndi.FRAME_TYPE_VIDEO:
-                    print("Processing video frame", video_frame.xres, video_frame.yres)
-                    print("Converting to numpy array...")
-                    data = np.frombuffer(video_frame.data, dtype=np.uint8)
-                    print("Reshaping...")
-                    data = data.reshape(video_frame.yres, video_frame.line_stride_in_bytes // 4, 4)
-                    frame = cv2.cvtColor(data, cv2.COLOR_BGRA2RGB)
-                    print("Creating QImage...")
-                    qimg = QtGui.QImage(frame.data, video_frame.xres, video_frame.yres, QtGui.QImage.Format_RGB888)
-                    print("Displaying...")
-                    self.video_label.setPixmap(QtGui.QPixmap.fromImage(qimg))
-                    print("Done displaying frame")
-                    ndi.recv_free_video_v2(self.receiver, video_frame)
+                    if frame_type == ndi.FRAME_TYPE_VIDEO:
+                        print("Processing video frame", video_frame.xres, video_frame.yres)
+                        print("Converting to numpy array...")
+                        data = np.frombuffer(video_frame.data, dtype=np.uint8)
+                        print("Reshaping...")
+                        data = data.reshape(video_frame.yres, video_frame.line_stride_in_bytes // 4, 4)
+                        frame = cv2.cvtColor(data, cv2.COLOR_BGRA2RGB)
+                        print("Creating QImage...")
+                        qimg = QtGui.QImage(frame.data, video_frame.xres, video_frame.yres, QtGui.QImage.Format_RGB888)
+                        print("Displaying...")
+                        try:
+                            self.video_label.setPixmap(QtGui.QPixmap.fromImage(qimg))
+                        except Exception:
+                            print("Error during QLabel update")
+                            raise
+                        self.repaint()
+                        print("Done displaying frame")
+                        ndi.recv_free_video_v2(self.receiver, video_frame)
+                        break
+                    elif frame_type == ndi.FRAME_TYPE_METADATA:
+                        ndi.recv_free_metadata(self.receiver, metadata_frame)
+                        continue
+                    elif frame_type == ndi.FRANE_TYPE_STATUS_CHANGE:
+                        print("Status change event")
+                        continue
+                    elif frame_type == ndi.FRAME_TYPE_NONE:
+                        print("No frame this loop")
+                        break
+                    else:
+                        print("Unexpected frame type", frame_type)
+                        break
+                except Exception as e:
+                    print(f"Exception during video frame handling: {e}")
                     break
-                elif frame_type == ndi.FRAME_TYPE_METADATA:
-                    ndi.recv_free_metadata(self.receiver, metadata_frame)
-                    continue
-                elif frame_type == ndi.FRANE_TYPE_STATUS_CHANGE:
-                    print("Status change event")
-                    continue
-                elif frame_type == ndi.FRAME_TYPE_NONE:
-                    print("No frame this loop")
-                    break
-                else:
-                    print("Unexpected frame type", frame_type)
-                    break
-            except Exception as e:
-                print(f"Exception during video frame handling: {e}")
-                break
+        except Exception as e:
+            print(f"[FATAL ERROR] Exception in _update_frame: {e}")
+            import traceback
+            traceback.print_exc()
 
 
 def main():
